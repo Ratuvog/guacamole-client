@@ -179,6 +179,22 @@ angular.module('client').directive('guacClient', [function guacClient() {
              */
             var mousePatienceRemaining = mousePatience;
 
+            /**
+             * The amount of velocity preserved while the pointer is sliding on
+             * the ground.
+             *
+             * @type Number
+             */
+            var groundFriction = 0.9;
+
+            /**
+             * The amount of velocity preserved while the pointer is flying
+             * through the air.
+             *
+             * @type Number
+             */
+            var airFriction = 0.99;
+
             // Enhance the mouse position every once in a while
             $interval(function enhanceMousePosition() {
 
@@ -198,6 +214,10 @@ angular.module('client').directive('guacClient', [function guacClient() {
 
                 // Update mouse position if it has velocity
                 if (mouseVelocityX || mouseVelocityY) {
+
+                    // Gradually slow mouse as it moves through the air
+                    mouseVelocityX *= airFriction;
+                    mouseVelocityY *= airFriction;
 
                     // Get applicable layers
                     var defaultLayer = display.getDefaultLayer();
@@ -225,6 +245,8 @@ angular.module('client').directive('guacClient', [function guacClient() {
                     else if (y >= defaultLayer.height - cursorLayer.height) {
                         y = defaultLayer.height - cursorLayer.height;
                         mouseVelocityY = mouseVelocityY * bounceFactor;
+                        mouseVelocityX *= groundFriction;
+                        mouseVelocityY *= groundFriction;
                     }
 
                     // Update position
