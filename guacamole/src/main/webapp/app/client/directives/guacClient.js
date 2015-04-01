@@ -159,7 +159,7 @@ angular.module('client').directive('guacClient', [function guacClient() {
              *
              * @type Number
              */
-            var bounceFactor = 0.75;
+            var bounceFactor = 0.8;
 
             /**
              * The number of frames to wait after mouse motion stops before
@@ -190,7 +190,7 @@ angular.module('client').directive('guacClient', [function guacClient() {
              *
              * @type Number
              */
-            var airFriction = 0.99;
+            var airFriction = 0.995;
 
             /**
              * The X location of the window during the last mouse frame.
@@ -266,8 +266,13 @@ angular.module('client').directive('guacClient', [function guacClient() {
                     y = defaultLayer.height - cursorLayer.height;
                     mouseVelocityY = -Math.abs(mouseVelocityY * bounceFactor) + windowDeltaY;
 
+                    // Inherit window velocity if being thrown
+                    if (windowDeltaY < 0)
+                        mouseVelocityX = windowDeltaX;
+
                     // Gradually slow mouse as it moves along ground
-                    mouseVelocityX = mouseVelocityX * groundFriction + windowDeltaX * (1 - groundFriction);
+                    else
+                        mouseVelocityX *= groundFriction;
 
                 }
 
