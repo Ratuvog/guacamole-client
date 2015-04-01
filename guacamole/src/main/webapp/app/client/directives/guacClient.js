@@ -540,10 +540,10 @@ angular.module('client').directive('guacClient', [function guacClient() {
 
             };
 
-            // Hide software cursor when mouse leaves display
+            // Show software cursor when mouse leaves display
             mouse.onmouseout = function() {
                 if (!display) return;
-                display.showCursor(false);
+                display.showCursor(true);
             };
 
             // Update remote clipboard if local clipboard changes
