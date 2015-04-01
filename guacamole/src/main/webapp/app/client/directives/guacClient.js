@@ -46,7 +46,8 @@ angular.module('client').directive('guacClient', [function guacClient() {
             var ManagedClient = $injector.get('ManagedClient');
                 
             // Required services
-            var $window = $injector.get('$window');
+            var $interval = $injector.get('$interval');
+            var $window   = $injector.get('$window');
                 
             /**
              * Whether the local, hardware mouse cursor is in use.
@@ -121,6 +122,91 @@ angular.module('client').directive('guacClient', [function guacClient() {
              * @type Guacamole.Mouse.Touchpad
              */
             var touchPad = new Guacamole.Mouse.Touchpad(displayContainer);
+
+            /**
+             * The duration of a mouse frame, in milliseconds.
+             *
+             * @type Number
+             */
+            var mouseFrameDuration = 10;
+
+            /**
+             * The X velocity of the mouse pointer in pixels per frame.
+             *
+             * @type Number
+             */
+            var mouseVelocityX = 0;
+
+            /**
+             * The Y velocity of the mouse pointer in pixels per frame.
+             *
+             * @type Number
+             */
+            var mouseVelocityY = 0;
+
+            /**
+             * The amount the Y velocity of the mouse pointer increases, in
+             * pixels per frame.
+             *
+             * @type Number
+             */
+            var gravity = 1;
+
+            /**
+             * The amount to multiple velocity by when the pointer bounces off
+             * any side of the display. This value naturally should be
+             * negative, and is more fun if somewhere between 0 and -1. Beyond
+             * -1, and you have flubber.
+             *
+             * @type Number
+             */
+            var bounceFactor = -0.75;
+
+            // Enhance the mouse position every once in a while
+            $interval(function enhanceMousePosition() {
+
+                mouseVelocityY += gravity;
+
+                // Update mouse position if it has velocity
+                if (mouseVelocityX || mouseVelocityY) {
+
+                    // Get applicable layers
+                    var defaultLayer = display.getDefaultLayer();
+                    var cursorLayer  = display.getCursorLayer();
+
+                    // Ensure cursor layer is shown
+                    display.showCursor(true);
+
+                    // Move cursor according to velocity
+                    var x = cursorLayer.x + mouseVelocityX;
+                    var y = cursorLayer.y + mouseVelocityY;
+
+                    // Bounce X
+                    if (x < 0) {
+                        x = 0;
+                        mouseVelocityX = mouseVelocityX * bounceFactor;
+                    }
+                    else if (x >= defaultLayer.width - cursorLayer.width) {
+                        x = defaultLayer.width - cursorLayer.width;
+                        mouseVelocityX = mouseVelocityX * bounceFactor;
+                    }
+
+                    // Bounce Y
+                    if (y < 0) {
+                        y = 0;
+                        mouseVelocityY = mouseVelocityY * bounceFactor;
+                    }
+                    else if (y >= defaultLayer.height - cursorLayer.height) {
+                        y = defaultLayer.height - cursorLayer.height;
+                        mouseVelocityY = mouseVelocityY * bounceFactor;
+                    }
+
+                    // Update position
+                    cursorLayer.translate(x, y);
+
+                }
+
+            }, mouseFrameDuration, 0, false);
 
             /**
              * Updates the scale of the attached Guacamole.Client based on current window
@@ -369,6 +455,9 @@ angular.module('client').directive('guacClient', [function guacClient() {
                 // Send mouse state, show cursor if necessary
                 display.showCursor(!localCursor);
                 sendScaledMouseState(mouseState);
+
+                // Reset velocity
+                mouseVelocityX = mouseVelocityY = 0;
 
             };
 
