@@ -162,8 +162,29 @@ angular.module('client').directive('guacClient', [function guacClient() {
              */
             var bounceFactor = -0.75;
 
+            /**
+             * The number of frames to wait after mouse motion stops before
+             * enhancing the cursor.
+             *
+             * @type Number
+             */
+            var mousePatience = 200;
+
+            /**
+             * The amount of patience remaining, in frames.
+             *
+             * @type Number 
+             */
+            var mousePatienceRemaining = mousePatience;
+
             // Enhance the mouse position every once in a while
             $interval(function enhanceMousePosition() {
+
+                // Do not enhance while patience remains
+                if (mousePatienceRemaining > 0) {
+                    mousePatienceRemaining--;
+                    return;
+                }
 
                 mouseVelocityY += gravity;
 
@@ -458,6 +479,7 @@ angular.module('client').directive('guacClient', [function guacClient() {
 
                 // Reset velocity
                 mouseVelocityX = mouseVelocityY = 0;
+                mousePatienceRemaining = mousePatience;
 
             };
 
