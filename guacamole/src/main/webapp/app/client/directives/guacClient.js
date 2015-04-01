@@ -43,9 +43,11 @@ angular.module('client').directive('guacClient', [function guacClient() {
         controller: ['$scope', '$injector', '$element', function guacClientController($scope, $injector, $element) {
    
             // Required types
-            var ManagedClient = $injector.get('ManagedClient');
+            var ManagedClient  = $injector.get('ManagedClient');
+            var ManagedDisplay = $injector.get('ManagedDisplay');
                 
             // Required services
+            var $document = $injector.get('$document');
             var $interval = $injector.get('$interval');
             var $window   = $injector.get('$window');
                 
@@ -186,6 +188,12 @@ angular.module('client').directive('guacClient', [function guacClient() {
                     return;
                 }
 
+                // Switch to software mouse cursoe
+                if (localCursor) {
+                    displayContainer.style.cursor = '';
+                    display.showCursor(true);
+                }
+
                 mouseVelocityY += gravity;
 
                 // Update mouse position if it has velocity
@@ -194,9 +202,6 @@ angular.module('client').directive('guacClient', [function guacClient() {
                     // Get applicable layers
                     var defaultLayer = display.getDefaultLayer();
                     var cursorLayer  = display.getCursorLayer();
-
-                    // Ensure cursor layer is shown
-                    display.showCursor(true);
 
                     // Move cursor according to velocity
                     var x = cursorLayer.x + mouseVelocityX;
@@ -472,6 +477,11 @@ angular.module('client').directive('guacClient', [function guacClient() {
 
                 if (!client || !display)
                     return;
+
+                // Restore cursor, if hidden for enhancement purposes
+                var cursor = $scope.client.managedDisplay.cursor;
+                if (localCursor && !displayContainer.style.cursor && cursor)
+                    mouse.setCursor(cursor.canvas, cursor.x, cursor.y);
 
                 // Send mouse state, show cursor if necessary
                 display.showCursor(!localCursor);
