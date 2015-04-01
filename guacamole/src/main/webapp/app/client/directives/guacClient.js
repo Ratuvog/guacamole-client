@@ -155,14 +155,11 @@ angular.module('client').directive('guacClient', [function guacClient() {
             var gravity = 1;
 
             /**
-             * The amount to multiple velocity by when the pointer bounces off
-             * any side of the display. This value naturally should be
-             * negative, and is more fun if somewhere between 0 and -1. Beyond
-             * -1, and you have flubber.
+             * The amount of velocity preserved during bounce.
              *
              * @type Number
              */
-            var bounceFactor = -0.75;
+            var bounceFactor = 0.75;
 
             /**
              * The number of frames to wait after mouse motion stops before
@@ -195,6 +192,20 @@ angular.module('client').directive('guacClient', [function guacClient() {
              */
             var airFriction = 0.99;
 
+            /**
+             * The X location of the window during the last mouse frame.
+             *
+             * @type Number
+             */
+            var lastWindowX = window.screenX;
+
+            /**
+             * The Y location of the window during the last mouse frame.
+             *
+             * @type Number
+             */
+            var lastWindowY = window.screenY;
+
             // Enhance the mouse position every once in a while
             $interval(function enhanceMousePosition() {
 
@@ -204,6 +215,21 @@ angular.module('client').directive('guacClient', [function guacClient() {
                     return;
                 }
 
+                // Get applicable layers
+                var defaultLayer = display.getDefaultLayer();
+                var cursorLayer  = display.getCursorLayer();
+
+                // Track movement of window
+                var windowDeltaX = window.screenX - lastWindowX;
+                var windowDeltaY = window.screenY - lastWindowY;
+
+                // Keep pointer position relative to screen
+                cursorLayer.translate(cursorLayer.x - windowDeltaX,
+                                      cursorLayer.y - windowDeltaY);
+
+                lastWindowX = window.screenX;
+                lastWindowY = window.screenY;
+
                 // Switch to software mouse cursoe
                 if (localCursor) {
                     displayContainer.style.cursor = '';
@@ -212,47 +238,41 @@ angular.module('client').directive('guacClient', [function guacClient() {
 
                 mouseVelocityY += gravity;
 
-                // Update mouse position if it has velocity
-                if (mouseVelocityX || mouseVelocityY) {
+                // Gradually slow mouse as it moves through the air
+                mouseVelocityX *= airFriction;
+                mouseVelocityY *= airFriction;
 
-                    // Gradually slow mouse as it moves through the air
-                    mouseVelocityX *= airFriction;
-                    mouseVelocityY *= airFriction;
+                // Move cursor according to velocity
+                var x = cursorLayer.x + mouseVelocityX;
+                var y = cursorLayer.y + mouseVelocityY;
 
-                    // Get applicable layers
-                    var defaultLayer = display.getDefaultLayer();
-                    var cursorLayer  = display.getCursorLayer();
+                // Bounce X, including window velocity
+                if (x < 0) {
+                    x = 0;
+                    mouseVelocityX = Math.abs(mouseVelocityX * bounceFactor) + windowDeltaX;
+                }
+                else if (x >= defaultLayer.width - cursorLayer.width) {
+                    x = defaultLayer.width - cursorLayer.width;
+                    mouseVelocityX = -Math.abs(mouseVelocityX * bounceFactor) + windowDeltaX;
+                }
 
-                    // Move cursor according to velocity
-                    var x = cursorLayer.x + mouseVelocityX;
-                    var y = cursorLayer.y + mouseVelocityY;
+                // Bounce Y, including window velocity
+                if (y < 0) {
+                    y = 0;
+                    mouseVelocityY = Math.abs(mouseVelocityY * bounceFactor) + windowDeltaY;
+                }
+                else if (y >= defaultLayer.height - cursorLayer.height) {
 
-                    // Bounce X
-                    if (x < 0) {
-                        x = 0;
-                        mouseVelocityX = mouseVelocityX * bounceFactor;
-                    }
-                    else if (x >= defaultLayer.width - cursorLayer.width) {
-                        x = defaultLayer.width - cursorLayer.width;
-                        mouseVelocityX = mouseVelocityX * bounceFactor;
-                    }
+                    y = defaultLayer.height - cursorLayer.height;
+                    mouseVelocityY = -Math.abs(mouseVelocityY * bounceFactor) + windowDeltaY;
 
-                    // Bounce Y
-                    if (y < 0) {
-                        y = 0;
-                        mouseVelocityY = mouseVelocityY * bounceFactor;
-                    }
-                    else if (y >= defaultLayer.height - cursorLayer.height) {
-                        y = defaultLayer.height - cursorLayer.height;
-                        mouseVelocityY = mouseVelocityY * bounceFactor;
-                        mouseVelocityX *= groundFriction;
-                        mouseVelocityY *= groundFriction;
-                    }
-
-                    // Update position
-                    cursorLayer.translate(x, y);
+                    // Gradually slow mouse as it moves along ground
+                    mouseVelocityX = mouseVelocityX * groundFriction + windowDeltaX * (1 - groundFriction);
 
                 }
+
+                // Update position
+                cursorLayer.translate(x, y);
 
             }, mouseFrameDuration, 0, false);
 
